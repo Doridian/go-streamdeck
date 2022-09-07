@@ -450,7 +450,7 @@ func (d Device) SetImage(index uint8, img image.Image) error {
 		copy(data, header)
 		copy(data[len(header):], payload)
 
-		_, err := d.device.Write(data, usbTimeout)
+		_, err := d.handle.Write(data, usbTimeout)
 		if err != nil {
 			return fmt.Errorf("cannot write image page %d of %d (%d image bytes) %d bytes: %v",
 				page, imageData.PageCount(), imageData.Length(), len(data), err)
@@ -465,7 +465,7 @@ func (d Device) SetImage(index uint8, img image.Image) error {
 // getFeatureReport from the device without worries about the correct payload
 // size.
 func (d Device) getFeatureReport(id int) ([]byte, error) {
-	b, err := d.device.GetReport(id)
+	b, err := d.handle.GetFeatureReport(id)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +477,7 @@ func (d Device) getFeatureReport(id int) ([]byte, error) {
 func (d Device) sendFeatureReport(payload []byte) error {
 	b := make([]byte, d.featureReportSize-1)
 	copy(b, payload[1:])
-	return d.device.SetReport(int(payload[0]), payload)
+	return d.handle.SetFeatureReport(int(payload[0]), payload)
 }
 
 // translateRightToLeft translates the given key index from right-to-left to
