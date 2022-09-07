@@ -218,7 +218,7 @@ func (d *Device) Open() error {
 func (d *Device) Close() error {
 	d.cancelSleepTimer()
 	if d.handle != nil {
-		return d.handle.Close()
+		d.handle.Close()
 	}
 	return nil
 }
@@ -256,26 +256,26 @@ func (d Device) Clear() error {
 func (d *Device) ReadKeys() (chan Key, error) {
 	kch := make(chan Key)
 
-	keyState := make([]byte, d.keyStateLegth)
-	keyBuffer := make([]byte, d.keyStateOffset+d.keyStateLegth)
+	keyBufferLen := d.keyStateOffset + d.keyStateLegth
+	oldKeyBuffer := make([]byte, keyBufferLen)
 
 	go func() {
 		for {
-			copy(keyState, keyBuffer[d.keyStateOffset:])
-
-			if _, err := d.handle.Read(keyBuffer, noTimeout); err != nil {
+			keyBuffer, err := d.handle.ReadInputPacket(noTimeout)
+			if err != nil {
 				close(kch)
 				return
+			}
+
+			if len(keyBuffer) < keyBufferLen {
+				continue
 			}
 
 			// don't trigger a key event if the device is asleep, but wake it
 			if d.asleep {
 				_ = d.Wake()
-
 				// reset state so no spurious key events get triggered
-				for i := d.keyStateOffset; i < len(keyBuffer); i++ {
-					keyBuffer[i] = 0
-				}
+				oldKeyBuffer = make([]byte, keyBufferLen)
 				continue
 			}
 
@@ -284,14 +284,16 @@ func (d *Device) ReadKeys() (chan Key, error) {
 			d.sleepMutex.Unlock()
 
 			for i := d.keyStateOffset; i < len(keyBuffer); i++ {
-				keyIndex := uint8(i - d.keyStateOffset)
-				if keyBuffer[i] != keyState[keyIndex] {
+				if keyBuffer[i] != oldKeyBuffer[i] {
+					keyIndex := uint8(i - d.keyStateOffset)
 					kch <- Key{
 						Index:   d.translateKeyIndex(keyIndex, d.Columns),
 						Pressed: keyBuffer[i] == 1,
 					}
 				}
 			}
+
+			oldKeyBuffer = keyBuffer
 		}
 	}()
 
