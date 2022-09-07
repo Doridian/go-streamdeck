@@ -69,7 +69,7 @@ type Device struct {
 	resetCommand         []byte
 	setBrightnessCommand []byte
 
-	keyState []byte
+	keyStateLegth int
 
 	device hid.Device
 	info   hid.Info
@@ -190,7 +190,7 @@ func Devices() ([]Device, error) {
 		}
 
 		if dev.Columns > 0 {
-			dev.keyState = make([]byte, dev.Columns*dev.Rows)
+			dev.keyStateLegth = int(dev.Columns) * int(dev.Rows)
 			dev.info = info
 			dev.device = d
 			dd = append(dd, dev)
@@ -249,31 +249,28 @@ const usbTimeout = time.Duration(1) * time.Second
 
 // ReadKeys returns a channel, which it will use to emit key presses/releases.
 func (d *Device) ReadKeys() (chan Key, error) {
-	var err error
 	kch := make(chan Key)
 
-	keyBufferLen := d.keyStateOffset + len(d.keyState)
-	keyBuffer := make([]byte, 0)
+	keyBufferLen := d.keyStateOffset + d.keyStateLegth
+	oldKeyBuffer := make([]byte, keyBufferLen)
+
 	go func() {
 		for {
-			if len(keyBuffer) > d.keyStateOffset {
-				copy(d.keyState, keyBuffer[d.keyStateOffset:])
-			}
-
-			keyBuffer, err = d.device.Read(keyBufferLen, usbTimeout)
+			keyBuffer, err := d.device.Read(keyBufferLen, usbTimeout)
 			if err != nil {
 				close(kch)
 				return
 			}
 
+			if len(keyBuffer) < keyBufferLen {
+				continue
+			}
+
 			// don't trigger a key event if the device is asleep, but wake it
 			if d.asleep {
 				_ = d.Wake()
-
 				// reset state so no spurious key events get triggered
-				for i := d.keyStateOffset; i < len(keyBuffer); i++ {
-					keyBuffer[i] = 0
-				}
+				oldKeyBuffer = make([]byte, keyBufferLen)
 				continue
 			}
 
@@ -282,14 +279,16 @@ func (d *Device) ReadKeys() (chan Key, error) {
 			d.sleepMutex.Unlock()
 
 			for i := d.keyStateOffset; i < len(keyBuffer); i++ {
-				keyIndex := uint8(i - d.keyStateOffset)
-				if keyBuffer[i] != d.keyState[keyIndex] {
+				if keyBuffer[i] != oldKeyBuffer[i] {
+					keyIndex := uint8(i - d.keyStateOffset)
 					kch <- Key{
 						Index:   d.translateKeyIndex(keyIndex, d.Columns),
 						Pressed: keyBuffer[i] == 1,
 					}
 				}
 			}
+
+			oldKeyBuffer = keyBuffer
 		}
 	}()
 
