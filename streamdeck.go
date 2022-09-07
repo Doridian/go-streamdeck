@@ -20,6 +20,9 @@ const (
 	fadeDelay = time.Second / 30
 )
 
+const noTimeout = time.Duration(0)
+const usbTimeout = time.Second * 1
+
 // Stream Deck Vendor & Product IDs.
 //
 //nolint:revive
@@ -245,8 +248,6 @@ func (d Device) Clear() error {
 	return nil
 }
 
-const usbTimeout = time.Duration(1) * time.Second
-
 // ReadKeys returns a channel, which it will use to emit key presses/releases.
 func (d *Device) ReadKeys() (chan Key, error) {
 	kch := make(chan Key)
@@ -256,7 +257,7 @@ func (d *Device) ReadKeys() (chan Key, error) {
 
 	go func() {
 		for {
-			keyBuffer, err := d.device.Read(keyBufferLen, usbTimeout)
+			keyBuffer, err := d.device.Read(keyBufferLen, noTimeout)
 			if err != nil {
 				close(kch)
 				return
