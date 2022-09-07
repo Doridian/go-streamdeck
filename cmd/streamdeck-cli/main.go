@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Doridian/streamdeck"
 	"github.com/muesli/coral"
-	"github.com/muesli/streamdeck"
 )
 
 var (

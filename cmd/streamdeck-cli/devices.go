@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/Doridian/streamdeck"
 	"github.com/muesli/coral"
-	"github.com/muesli/streamdeck"
 )
 
 var (
