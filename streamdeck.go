@@ -283,7 +283,7 @@ func (d *Device) ReadKeys() (chan Key, error) {
 			d.lastActionTime = time.Now()
 			d.sleepMutex.Unlock()
 
-			for i := d.keyStateOffset; i < len(keyBuffer); i++ {
+			for i := d.keyStateOffset; i < keyBufferLen; i++ {
 				if keyBuffer[i] != oldKeyBuffer[i] {
 					keyIndex := uint8(i - d.keyStateOffset)
 					kch <- Key{
