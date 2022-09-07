@@ -8,8 +8,8 @@ import (
 	"image/color"
 	"image/jpeg"
 	"math"
-	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/KarpelesLab/hid"
@@ -253,7 +253,7 @@ func (d Device) Clear() error {
 }
 
 func isErrorTimeout(err error) bool {
-	syscallErr, ok := err.(*os.SyscallError)
+	syscallErr, ok := err.(syscall.Errno)
 	if !ok {
 		return false
 	}
