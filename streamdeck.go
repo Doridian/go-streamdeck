@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -20,7 +21,6 @@ const (
 	fadeDelay = time.Second / 30
 )
 
-const noTimeout = time.Duration(0)
 const usbTimeout = time.Second * 1
 
 // Stream Deck Vendor & Product IDs.
@@ -252,6 +252,14 @@ func (d Device) Clear() error {
 	return nil
 }
 
+func isErrorTimeout(err error) bool {
+	syscallErr, ok := err.(*os.SyscallError)
+	if !ok {
+		return false
+	}
+	return syscallErr.Timeout()
+}
+
 // ReadKeys returns a channel, which it will use to emit key presses/releases.
 func (d *Device) ReadKeys() (chan Key, error) {
 	kch := make(chan Key)
@@ -261,8 +269,11 @@ func (d *Device) ReadKeys() (chan Key, error) {
 
 	go func() {
 		for {
-			keyBuffer, err := d.handle.ReadInputPacket(noTimeout)
+			keyBuffer, err := d.handle.ReadInputPacket(usbTimeout)
 			if err != nil {
+				if isErrorTimeout(err) {
+					continue
+				}
 				close(kch)
 				return
 			}
