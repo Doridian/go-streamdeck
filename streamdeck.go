@@ -74,6 +74,7 @@ type Device struct {
 
 	keyStateLegth int
 
+	handle hid.Handle
 	device hid.Device
 	info   hid.Info
 
@@ -206,7 +207,8 @@ func Devices() ([]Device, error) {
 // Open the device for input/output. This must be called before trying to
 // communicate with the device.
 func (d *Device) Open() error {
-	err := d.device.Open()
+	var err error
+	d.handle, err = d.device.Open()
 	d.lastActionTime = time.Now()
 	d.sleepMutex = &sync.RWMutex{}
 	return err
@@ -215,7 +217,9 @@ func (d *Device) Open() error {
 // Close the connection with the device.
 func (d *Device) Close() error {
 	d.cancelSleepTimer()
-	d.device.Close()
+	if d.handle != nil {
+		return d.handle.Close()
+	}
 	return nil
 }
 
@@ -252,26 +256,26 @@ func (d Device) Clear() error {
 func (d *Device) ReadKeys() (chan Key, error) {
 	kch := make(chan Key)
 
-	keyBufferLen := d.keyStateOffset + d.keyStateLegth
-	oldKeyBuffer := make([]byte, keyBufferLen)
+	keyState := make([]byte, d.keyStateLegth)
+	keyBuffer := make([]byte, d.keyStateOffset+d.keyStateLegth)
 
 	go func() {
 		for {
-			keyBuffer, err := d.device.Read(keyBufferLen, noTimeout)
-			if err != nil {
+			copy(keyState, keyBuffer[d.keyStateOffset:])
+
+			if _, err := d.handle.Read(keyBuffer, noTimeout); err != nil {
 				close(kch)
 				return
-			}
-
-			if len(keyBuffer) < keyBufferLen {
-				continue
 			}
 
 			// don't trigger a key event if the device is asleep, but wake it
 			if d.asleep {
 				_ = d.Wake()
+
 				// reset state so no spurious key events get triggered
-				oldKeyBuffer = make([]byte, keyBufferLen)
+				for i := d.keyStateOffset; i < len(keyBuffer); i++ {
+					keyBuffer[i] = 0
+				}
 				continue
 			}
 
@@ -280,16 +284,14 @@ func (d *Device) ReadKeys() (chan Key, error) {
 			d.sleepMutex.Unlock()
 
 			for i := d.keyStateOffset; i < len(keyBuffer); i++ {
-				if keyBuffer[i] != oldKeyBuffer[i] {
-					keyIndex := uint8(i - d.keyStateOffset)
+				keyIndex := uint8(i - d.keyStateOffset)
+				if keyBuffer[i] != keyState[keyIndex] {
 					kch <- Key{
 						Index:   d.translateKeyIndex(keyIndex, d.Columns),
 						Pressed: keyBuffer[i] == 1,
 					}
 				}
 			}
-
-			oldKeyBuffer = keyBuffer
 		}
 	}()
 
