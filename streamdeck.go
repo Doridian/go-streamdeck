@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jkassis/hid"
+	"github.com/KarpelesLab/hid"
 	"golang.org/x/image/draw"
 )
 
