@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/karalabe/hid"
+	"github.com/jkassis/hid"
 	"golang.org/x/image/draw"
 )
 
@@ -20,8 +20,9 @@ const (
 	fadeDelay = time.Second / 30
 )
 
-//nolint:revive
 // Stream Deck Vendor & Product IDs.
+//
+//nolint:revive
 const (
 	VID_ELGATO              = 0x0fd9
 	PID_STREAMDECK          = 0x0060
@@ -32,23 +33,21 @@ const (
 	PID_STREAMDECK_XL       = 0x006c
 )
 
-//nolint:revive
 // Firmware command IDs.
+//
+//nolint:revive
 var (
-	c_REV1_FIRMWARE   = []byte{0x04}
+	c_REV1_FIRMWARE   = 0x04
 	c_REV1_RESET      = []byte{0x0b, 0x63}
 	c_REV1_BRIGHTNESS = []byte{0x05, 0x55, 0xaa, 0xd1, 0x01}
 
-	c_REV2_FIRMWARE   = []byte{0x05}
+	c_REV2_FIRMWARE   = 0x05
 	c_REV2_RESET      = []byte{0x03, 0x02}
 	c_REV2_BRIGHTNESS = []byte{0x03, 0x08}
 )
 
 // Device represents a single Stream Deck device.
 type Device struct {
-	ID     string
-	Serial string
-
 	Columns uint8
 	Rows    uint8
 	Keys    uint8
@@ -66,14 +65,14 @@ type Device struct {
 	toImageFormat       func(image.Image) ([]byte, error)
 	imagePageHeader     func(pageIndex int, keyIndex uint8, payloadLength int, lastPage bool) []byte
 
-	getFirmwareCommand   []byte
+	getFirmwareCommand   int
 	resetCommand         []byte
 	setBrightnessCommand []byte
 
 	keyState []byte
 
-	device *hid.Device
-	info   hid.DeviceInfo
+	device hid.Device
+	info   hid.Info
 
 	lastActionTime time.Time
 	asleep         bool
@@ -95,15 +94,17 @@ type Key struct {
 func Devices() ([]Device, error) {
 	dd := []Device{}
 
-	devs := hid.Enumerate(VID_ELGATO, 0)
-	for _, d := range devs {
-		var dev Device
+	var dev Device
+
+	hid.UsbWalk(func(d hid.Device) {
+		info := d.Info()
+		if info.Vendor != VID_ELGATO {
+			return
+		}
 
 		switch {
-		case d.VendorID == VID_ELGATO && d.ProductID == PID_STREAMDECK:
+		case info.Product == PID_STREAMDECK:
 			dev = Device{
-				ID:                   d.Path,
-				Serial:               d.Serial,
 				Columns:              5,
 				Rows:                 3,
 				Keys:                 15,
@@ -123,10 +124,8 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV1_RESET,
 				setBrightnessCommand: c_REV1_BRIGHTNESS,
 			}
-		case d.VendorID == VID_ELGATO && (d.ProductID == PID_STREAMDECK_MINI || d.ProductID == PID_STREAMDECK_MINI_MK2):
+		case info.Product == PID_STREAMDECK_MINI || info.Product == PID_STREAMDECK_MINI_MK2:
 			dev = Device{
-				ID:                   d.Path,
-				Serial:               d.Serial,
 				Columns:              3,
 				Rows:                 2,
 				Keys:                 6,
@@ -146,10 +145,8 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV1_RESET,
 				setBrightnessCommand: c_REV1_BRIGHTNESS,
 			}
-		case d.VendorID == VID_ELGATO && (d.ProductID == PID_STREAMDECK_V2 || d.ProductID == PID_STREAMDECK_MK2):
+		case info.Product == PID_STREAMDECK_V2 || info.Product == PID_STREAMDECK_MK2:
 			dev = Device{
-				ID:                   d.Path,
-				Serial:               d.Serial,
 				Columns:              5,
 				Rows:                 3,
 				Keys:                 15,
@@ -169,10 +166,8 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV2_RESET,
 				setBrightnessCommand: c_REV2_BRIGHTNESS,
 			}
-		case d.VendorID == VID_ELGATO && d.ProductID == PID_STREAMDECK_XL:
+		case info.Product == PID_STREAMDECK_XL:
 			dev = Device{
-				ID:                   d.Path,
-				Serial:               d.Serial,
 				Columns:              8,
 				Rows:                 4,
 				Keys:                 32,
@@ -194,12 +189,13 @@ func Devices() ([]Device, error) {
 			}
 		}
 
-		if dev.ID != "" {
+		if dev.Columns > 0 {
 			dev.keyState = make([]byte, dev.Columns*dev.Rows)
-			dev.info = d
+			dev.info = info
+			dev.device = d
 			dd = append(dd, dev)
 		}
-	}
+	})
 
 	return dd, nil
 }
@@ -207,8 +203,7 @@ func Devices() ([]Device, error) {
 // Open the device for input/output. This must be called before trying to
 // communicate with the device.
 func (d *Device) Open() error {
-	var err error
-	d.device, err = d.info.Open()
+	err := d.device.Open()
 	d.lastActionTime = time.Now()
 	d.sleepMutex = &sync.RWMutex{}
 	return err
@@ -217,7 +212,8 @@ func (d *Device) Open() error {
 // Close the connection with the device.
 func (d *Device) Close() error {
 	d.cancelSleepTimer()
-	return d.device.Close()
+	d.device.Close()
+	return nil
 }
 
 // FirmwareVersion returns the firmware version of the device.
@@ -249,15 +245,23 @@ func (d Device) Clear() error {
 	return nil
 }
 
+const usbTimeout = time.Duration(1) * time.Second
+
 // ReadKeys returns a channel, which it will use to emit key presses/releases.
 func (d *Device) ReadKeys() (chan Key, error) {
+	var err error
 	kch := make(chan Key)
-	keyBuffer := make([]byte, d.keyStateOffset+len(d.keyState))
+
+	keyBufferLen := d.keyStateOffset + len(d.keyState)
+	keyBuffer := make([]byte, 0)
 	go func() {
 		for {
-			copy(d.keyState, keyBuffer[d.keyStateOffset:])
+			if len(keyBuffer) > d.keyStateOffset {
+				copy(d.keyState, keyBuffer[d.keyStateOffset:])
+			}
 
-			if _, err := d.device.Read(keyBuffer); err != nil {
+			keyBuffer, err = d.device.Read(keyBufferLen, usbTimeout)
+			if err != nil {
 				close(kch)
 				return
 			}
@@ -444,7 +448,7 @@ func (d Device) SetImage(index uint8, img image.Image) error {
 		copy(data, header)
 		copy(data[len(header):], payload)
 
-		_, err := d.device.Write(data)
+		_, err := d.device.Write(data, usbTimeout)
 		if err != nil {
 			return fmt.Errorf("cannot write image page %d of %d (%d image bytes) %d bytes: %v",
 				page, imageData.PageCount(), imageData.Length(), len(data), err)
@@ -458,10 +462,8 @@ func (d Device) SetImage(index uint8, img image.Image) error {
 
 // getFeatureReport from the device without worries about the correct payload
 // size.
-func (d Device) getFeatureReport(payload []byte) ([]byte, error) {
-	b := make([]byte, d.featureReportSize)
-	copy(b, payload)
-	_, err := d.device.GetFeatureReport(b)
+func (d Device) getFeatureReport(id int) ([]byte, error) {
+	b, err := d.device.GetReport(id)
 	if err != nil {
 		return nil, err
 	}
@@ -471,10 +473,9 @@ func (d Device) getFeatureReport(payload []byte) ([]byte, error) {
 // sendFeatureReport to the device without worries about the correct payload
 // size.
 func (d Device) sendFeatureReport(payload []byte) error {
-	b := make([]byte, d.featureReportSize)
-	copy(b, payload)
-	_, err := d.device.SendFeatureReport(b)
-	return err
+	b := make([]byte, d.featureReportSize-1)
+	copy(b, payload[1:])
+	return d.device.SetReport(int(payload[0]), payload)
 }
 
 // translateRightToLeft translates the given key index from right-to-left to

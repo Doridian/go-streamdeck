@@ -26,15 +26,15 @@ var (
 
 			for _, d := range devs {
 				if err := d.Open(); err != nil {
-					return fmt.Errorf("can't open device %s: %s", d.ID, err)
+					return fmt.Errorf("can't open device: %s", err)
 				}
 
 				ver, err := d.FirmwareVersion()
 				if err != nil {
 					return fmt.Errorf("can't retrieve device info: %s", err)
 				}
-				fmt.Printf("Serial %s with %d keys (ID: %s, firmware %s)\n",
-					d.Serial, d.Keys, d.ID, ver)
+				fmt.Printf("Found device with %d keys (firmware %s)\n",
+					d.Keys, ver)
 
 				_ = d.Close()
 			}
