@@ -218,7 +218,7 @@ func (d *Device) Open() error {
 func (d *Device) Close() error {
 	d.cancelSleepTimer()
 	if d.handle != nil {
-		d.handle.Close()
+		return d.handle.Close()
 	}
 	return nil
 }
