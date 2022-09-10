@@ -34,3 +34,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", ATTRS{idProduct}=="0090", MODE:="666"
 Make sure your user is part of the `plugdev` group and reload the rules with
 `sudo udevadm control --reload-rules`. Unplug and replug the device and you
 should be good to go.
+
+## Credits
+
+This is a modified fork of https://github.com/muesli/streamdeck
