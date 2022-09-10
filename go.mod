@@ -1,4 +1,4 @@
-module github.com/Doridian/streamdeck
+module github.com/Doridian/go-streamdeck
 
 go 1.19
 

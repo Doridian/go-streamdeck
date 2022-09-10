@@ -1,10 +1,10 @@
 # streamdeck
 
-[![Latest Release](https://img.shields.io/github/release/Doridian/streamdeck.svg?style=for-the-badge)](https://github.com/Doridian/streamdeck/releases)
+[![Latest Release](https://img.shields.io/github/release/Doridian/go-streamdeck.svg?style=for-the-badge)](https://github.com/Doridian/go-streamdeck/releases)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge)](/LICENSE)
-[![Build Status](https://img.shields.io/github/workflow/status/Doridian/streamdeck/build?style=for-the-badge)](https://github.com/Doridian/streamdeck/actions)
-[![Go ReportCard](https://goreportcard.com/badge/github.com/Doridian/streamdeck?style=for-the-badge)](https://goreportcard.com/report/Doridian/streamdeck)
-[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://pkg.go.dev/github.com/Doridian/streamdeck)
+[![Build Status](https://img.shields.io/github/workflow/status/Doridian/go-streamdeck/build?style=for-the-badge)](https://github.com/Doridian/go-streamdeck/actions)
+[![Go ReportCard](https://goreportcard.com/badge/github.com/Doridian/go-streamdeck?style=for-the-badge)](https://goreportcard.com/report/Doridian/go-streamdeck)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=for-the-badge)](https://pkg.go.dev/github.com/Doridian/go-streamdeck)
 
 A Go library to control your Elgato Stream Deck on Linux.
 
@@ -15,7 +15,7 @@ See the [install instructions](http://golang.org/doc/install.html).
 
 To install streamdeck, simply run:
 
-    go get github.com/Doridian/streamdeck
+    go get github.com/Doridian/go-streamdeck
 
 ## Configuration
 
