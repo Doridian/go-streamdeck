@@ -15,7 +15,7 @@ func (h *linuxHIDDeviceHandle) GetFeatureReport(id byte) ([]byte, error) {
 }
 
 func (h *linuxHIDDeviceHandle) SetFeatureReport(payload []byte) error {
-	return h.hdl.SetFeatureReport(int(payload[0]), payload[1:])
+	return h.hdl.SetFeatureReport(int(payload[0]), payload)
 }
 
 func (a *linuxHIDDeviceHandle) Read(timeout time.Duration) ([]byte, error) {
