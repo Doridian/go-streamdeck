@@ -224,5 +224,5 @@ func (d *Device) FirmwareVersion() (string, error) {
 
 // Resets the Stream Deck, clears all button images and shows the standby image.
 func (d *Device) Reset() error {
-	return d.sendFeatureReport(d.resetCommand)
+	return d.setFeatureReport(d.resetCommand)
 }

@@ -15,6 +15,13 @@ func (h *linuxHIDDeviceHandle) GetFeatureReport(id byte) ([]byte, error) {
 }
 
 func (h *linuxHIDDeviceHandle) SetFeatureReport(payload []byte) error {
+	// Yes, do NOT skip first byte of payload, even though it is the ID!
+	// Exception: The ID is 0, in which case the device does not use numbered reports
+	// So we have to account for that...
+	// See: https://github.com/libusb/hidapi/blob/0f2cf886e5a91ff13f222a67d8931c0822244c9a/libusb/hid.c#L1433
+	if payload[0] == 0 {
+		return h.hdl.SetFeatureReport(0, payload[1:])
+	}
 	return h.hdl.SetFeatureReport(int(payload[0]), payload)
 }
 

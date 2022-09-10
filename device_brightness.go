@@ -130,5 +130,5 @@ func (d *Device) SetBrightness(percent uint8) error {
 	copy(report, d.setBrightnessCommand)
 	report[len(report)-1] = percent
 
-	return d.sendFeatureReport(report)
+	return d.setFeatureReport(report)
 }
