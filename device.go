@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KarpelesLab/hid"
+	"github.com/Doridian/go-streamdeck/native"
 )
 
 const usbTimeout = time.Second * 1
@@ -28,13 +28,13 @@ const (
 //
 //nolint:revive
 var (
-	c_REV1_FIRMWARE   = 0x04
-	c_REV1_RESET      = []byte{0x0b, 0x63}
-	c_REV1_BRIGHTNESS = []byte{0x05, 0x55, 0xaa, 0xd1, 0x01}
+	c_REV1_FIRMWARE   byte = 0x04
+	c_REV1_RESET           = []byte{0x0b, 0x63}
+	c_REV1_BRIGHTNESS      = []byte{0x05, 0x55, 0xaa, 0xd1, 0x01}
 
-	c_REV2_FIRMWARE   = 0x05
-	c_REV2_RESET      = []byte{0x03, 0x02}
-	c_REV2_BRIGHTNESS = []byte{0x03, 0x08}
+	c_REV2_FIRMWARE   byte = 0x05
+	c_REV2_RESET           = []byte{0x03, 0x02}
+	c_REV2_BRIGHTNESS      = []byte{0x03, 0x08}
 )
 
 // Device represents a single Stream Deck device.
@@ -56,15 +56,14 @@ type Device struct {
 	toImageFormat       func(image.Image) ([]byte, error)
 	imagePageHeader     func(pageIndex int, keyIndex uint8, payloadLength int, lastPage bool) []byte
 
-	getFirmwareCommand   int
+	getFirmwareCommand   byte
 	resetCommand         []byte
 	setBrightnessCommand []byte
 
 	keyStateLegth int
 
-	handle hid.Handle
-	device hid.Device
-	info   hid.Info
+	handle native.HIDDeviceHandle
+	device native.HIDDevice
 
 	lastActionTime time.Time
 	asleep         bool
@@ -86,16 +85,18 @@ type Key struct {
 func Devices() ([]Device, error) {
 	dd := []Device{}
 
-	var dev Device
+	enum := native.NativeHIDEnumerator()
+	devs, err := enum.Enumerate(VID_ELGATO, 0)
+	if err != nil {
+		return dd, err
+	}
 
-	hid.UsbWalk(func(d hid.Device) {
-		info := d.Info()
-		if info.Vendor != VID_ELGATO {
-			return
-		}
+	for _, hidDev := range devs {
+		pid := hidDev.Product()
+		var dev Device
 
-		switch {
-		case info.Product == PID_STREAMDECK:
+		switch pid {
+		case PID_STREAMDECK:
 			dev = Device{
 				Columns:              5,
 				Rows:                 3,
@@ -116,7 +117,8 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV1_RESET,
 				setBrightnessCommand: c_REV1_BRIGHTNESS,
 			}
-		case info.Product == PID_STREAMDECK_MINI || info.Product == PID_STREAMDECK_MINI_MK2:
+		case PID_STREAMDECK_MINI:
+		case PID_STREAMDECK_MINI_MK2:
 			dev = Device{
 				Columns:              3,
 				Rows:                 2,
@@ -137,7 +139,8 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV1_RESET,
 				setBrightnessCommand: c_REV1_BRIGHTNESS,
 			}
-		case info.Product == PID_STREAMDECK_V2 || info.Product == PID_STREAMDECK_MK2:
+		case PID_STREAMDECK_V2:
+		case PID_STREAMDECK_MK2:
 			dev = Device{
 				Columns:              5,
 				Rows:                 3,
@@ -158,7 +161,7 @@ func Devices() ([]Device, error) {
 				resetCommand:         c_REV2_RESET,
 				setBrightnessCommand: c_REV2_BRIGHTNESS,
 			}
-		case info.Product == PID_STREAMDECK_XL:
+		case PID_STREAMDECK_XL:
 			dev = Device{
 				Columns:              8,
 				Rows:                 4,
@@ -183,11 +186,10 @@ func Devices() ([]Device, error) {
 
 		if dev.Columns > 0 {
 			dev.keyStateLegth = int(dev.Columns) * int(dev.Rows)
-			dev.info = info
-			dev.device = d
+			dev.device = hidDev
 			dd = append(dd, dev)
 		}
-	})
+	}
 
 	return dd, nil
 }

@@ -11,7 +11,7 @@ func (d *Device) ReadKeys() (chan Key, error) {
 
 	go func() {
 		for {
-			keyBuffer, err := d.handle.ReadInputPacket(usbTimeout)
+			keyBuffer, err := d.handle.Read(usbTimeout)
 			if err != nil {
 				if isErrorTimeout(err) {
 					continue

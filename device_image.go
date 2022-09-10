@@ -33,7 +33,7 @@ func (d *Device) SetConvertedImage(index uint8, imageData *ImageData) error {
 		copy(data, header)
 		copy(data[len(header):], payload)
 
-		_, err := d.handle.Write(data, usbTimeout)
+		err := d.handle.Write(data, usbTimeout)
 		if err != nil {
 			return fmt.Errorf("cannot write image page %d (%d bytes): %v",
 				page, len(data), err)
