@@ -1,7 +1,5 @@
 package streamdeck
 
-import "time"
-
 // ReadKeys returns a channel, which it will use to emit key presses/releases.
 func (d *Device) ReadKeys() (chan Key, error) {
 	kch := make(chan Key)
@@ -23,18 +21,6 @@ func (d *Device) ReadKeys() (chan Key, error) {
 			if len(keyBuffer) < keyBufferLen {
 				continue
 			}
-
-			// don't trigger a key event if the device is asleep, but wake it
-			if d.asleep {
-				_ = d.Wake()
-				// reset state so no spurious key events get triggered
-				oldKeyBuffer = make([]byte, keyBufferLen)
-				continue
-			}
-
-			d.sleepMutex.Lock()
-			d.lastActionTime = time.Now()
-			d.sleepMutex.Unlock()
 
 			for i := d.keyStateOffset; i < keyBufferLen; i++ {
 				if keyBuffer[i] != oldKeyBuffer[i] {

@@ -1,9 +1,7 @@
 package streamdeck
 
 import (
-	"context"
 	"image"
-	"sync"
 	"time"
 
 	"github.com/Doridian/go-streamdeck/native"
@@ -64,15 +62,6 @@ type Device struct {
 
 	handle native.HIDDeviceHandle
 	device native.HIDDevice
-
-	lastActionTime time.Time
-	asleep         bool
-	sleepCancel    context.CancelFunc
-	sleepMutex     *sync.RWMutex
-	fadeDuration   time.Duration
-
-	brightness         uint8
-	preSleepBrightness uint8
 }
 
 // Key holds the current status of a key on the device.
@@ -199,14 +188,11 @@ func Devices() ([]Device, error) {
 func (d *Device) Open() error {
 	var err error
 	d.handle, err = d.device.Open()
-	d.lastActionTime = time.Now()
-	d.sleepMutex = &sync.RWMutex{}
 	return err
 }
 
 // Close the connection with the device.
 func (d *Device) Close() error {
-	d.cancelSleepTimer()
 	if d.handle != nil {
 		return d.handle.Close()
 	}
