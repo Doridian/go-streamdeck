@@ -5,5 +5,5 @@ go 1.19
 require (
 	github.com/KarpelesLab/hid v0.1.0
 	github.com/karalabe/hid v1.0.1-0.20190806082151-9c14560f9ee8
-	golang.org/x/image v0.0.0-20221017200508-ffcb3fe7d1bf
+	golang.org/x/image v0.1.0
 )
