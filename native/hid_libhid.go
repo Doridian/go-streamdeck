@@ -5,11 +5,11 @@ package native
 import (
 	"time"
 
-	"github.com/karalabe/hid"
+	"github.com/Doridian/karalabe_hid"
 )
 
 type libHIDDeviceHandle struct {
-	hdl *hid.Device
+	hdl *karalabe_hid.Device
 }
 
 func (a *libHIDDeviceHandle) GetFeatureReport(id byte) ([]byte, error) {
@@ -43,7 +43,7 @@ func (a *libHIDDeviceHandle) Close() error {
 }
 
 type libHIDDevice struct {
-	info hid.DeviceInfo
+	info karalabe_hid.DeviceInfo
 }
 
 func (d *libHIDDevice) Vendor() uint16 {
@@ -67,7 +67,7 @@ func (d *libHIDDevice) Open() (HIDDeviceHandle, error) {
 type libHIDenumerator struct{}
 
 func (e *libHIDenumerator) Enumerate(vendorFilter uint16, productFilter uint16) ([]HIDDevice, error) {
-	nativeDevs := hid.Enumerate(vendorFilter, productFilter)
+	nativeDevs := karalabe_hid.Enumerate(vendorFilter, productFilter)
 	devArr := make([]HIDDevice, 0, len(nativeDevs))
 
 	for _, info := range nativeDevs {
