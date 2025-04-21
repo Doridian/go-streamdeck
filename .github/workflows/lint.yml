@@ -14,7 +14,6 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt-get install -y libusb-1.0-0-dev
       - uses: actions/checkout@v4
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
