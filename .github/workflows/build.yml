@@ -1,27 +1,23 @@
 name: build
-on: [push, pull_request]
+on:
+  - push
+  - pull_request
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      GO111MODULE: "on"
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
           check-latest: true
           cache: false
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Download Go modules
         run: go mod download
-
       - name: Build
         run: go build -v ./...
-
       - name: Test
         run: go test ./...
