@@ -2,7 +2,7 @@ module github.com/Doridian/go-streamdeck
 
 go 1.24.0
 
-toolchain go1.25.3
+toolchain go1.25.4
 
 require (
 	github.com/Doridian/karalabe_hid v1.0.0
