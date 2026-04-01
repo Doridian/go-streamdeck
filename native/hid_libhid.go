@@ -5,7 +5,7 @@ package native
 import (
 	"time"
 
-	"github.com/Doridian/karalabe_hid"
+	karalabe_hid "github.com/karalabe/hid"
 )
 
 type libHIDDeviceHandle struct {

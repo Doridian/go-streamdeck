@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.26.1
 
 require (
-	github.com/Doridian/karalabe_hid v1.0.0
 	github.com/KarpelesLab/hid v0.1.0
+	github.com/karalabe/hid v1.0.1-0.20260315100226-f5d04adeffeb
 	golang.org/x/image v0.38.0
 )
