@@ -7,5 +7,5 @@ toolchain go1.26.4
 require (
 	github.com/KarpelesLab/hid v0.1.0
 	github.com/karalabe/hid v1.0.1-0.20260315100226-f5d04adeffeb
-	golang.org/x/image v0.42.0
+	golang.org/x/image v0.43.0
 )
