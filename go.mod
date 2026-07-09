@@ -2,7 +2,7 @@ module github.com/Doridian/go-streamdeck
 
 go 1.25.0
 
-toolchain go1.26.4
+toolchain go1.26.5
 
 require (
 	github.com/KarpelesLab/hid v0.1.0
