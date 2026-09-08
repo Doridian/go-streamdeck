@@ -1,11 +1,11 @@
 module github.com/Doridian/go-streamdeck
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.27.1
 
 require (
 	github.com/KarpelesLab/hid v0.1.0
 	github.com/karalabe/hid v1.0.1-0.20260315100226-f5d04adeffeb
-	golang.org/x/image v0.45.0
+	golang.org/x/image v0.46.0
 )
